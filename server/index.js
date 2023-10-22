@@ -11,8 +11,12 @@ const balances = {
   "0x1": 100,
   "0x2": 50,
   "0x3": 75,
-  "685b96de0016c11587fe": 100
+  "e71bce77e712699ae5c0": 100,
 };
+
+const transfers = {
+  "e71bce77e712699ae5c0": [],
+}
 
 app.get("/balance/:address", (req, res) => {
   const { address } = req.params;
@@ -25,15 +29,14 @@ app.post("/send", (req, res) => {
   setInitialBalance(sender);
   setInitialBalance(recipient);
 
-  //const recoverPublicKey = secp256k1.recoverPublicKey(messageHash, signature, recoveryBit);
-
   if (balances[sender] < amount) {
     res.status(400).send({ message: "Not enough funds!" });
   }
-  // else if(recoverPublicKey !== sender) {
-  //   res.status(400).send({ message: "You are not authorized to send this transaction!" });
-  // }
+  if(transfers[sender].includes(messageHash)){
+    res.status(400).send({ message: "Replayed transactions are not allowed!" });
+  }
   else {
+    transfers[sender].push(messageHash);
     balances[sender] -= amount;
     balances[recipient] += amount;
     res.send({ balance: balances[sender] });

@@ -18,12 +18,16 @@ function Transfer({ address, setBalance, privateKey }) {
     const bytes = utf8ToBytes(message);
     const messageHash = toHex(sha256(bytes));
     
-    const { r, s } = secp256k1.sign(messageHash, privateKey);
+    const publicKey = secp256k1.getPublicKey(privateKey);
+    
+    const signature = secp256k1.sign(messageHash, privateKey);
 
-    const isSigned = secp256k1.verify({ r, s }, messageHash, address);
-    console.log({ r, s });
-    console.log(isSigned);
+    const isSigned = secp256k1.verify(signature, messageHash, publicKey);
+
     try {
+      if(!isSigned) {
+        throw new Error("You are not authorized to make this transaction!");
+      }
       const {
         data: { balance },
       } = await server.post(`send`, {
@@ -31,6 +35,7 @@ function Transfer({ address, setBalance, privateKey }) {
         amount: parseInt(sendAmount),
         recipient,
         messageHash,
+        publicKey
       });
       setBalance(balance);
     } catch (ex) {
